@@ -207,11 +207,15 @@ def svm_loss_vectorized(W, X, y, reg):
   # loss.                                                                     #
   #############################################################################
   # Replace "pass" statement with your code
+  #Not intuitional and universal way:
   sign = margin
   sign[sign>0] = 1.0
   sign_col_sum = sign.sum(dim=1)
   sign[range(num_train), y] = -sign_col_sum
   dW += X.t().matmul(sign)/ num_train + 2 * reg * W
+  dL = 1
+
+
 
   #############################################################################
   #                             END OF YOUR CODE                              #
@@ -461,7 +465,28 @@ def softmax_loss_naive(W, X, y, reg):
   # regularization!                                                           #
   #############################################################################
   # Replace "pass" statement with your code
-  pass
+  N = X.shape[0]
+  D = X.shape[1]
+  C = W.shape[1]
+
+  for i in range(N):
+    scores = W.t().mv(X[i]) #C
+    score_max_class = scores.max()
+    scores_minus_max = scores -  score_max_class#Numerical stability
+    softmax = (scores_minus_max.exp()) / (scores_minus_max.exp().sum())#C
+    loss += - softmax.log()[y[i]]
+    y_i = torch.zeros(C)
+    y_i[y[i]] = 1
+    dW[range(D), y[i]] -= X[i]
+    for j in range(C):
+      dW[:, j] += X[i] * softmax[j]
+  
+  #average loss
+  dW /= N
+  loss /= N
+  #add normalization term
+  loss += (reg * W ** 2).sum() 
+  dW += 2 * reg * W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
@@ -489,7 +514,24 @@ def softmax_loss_vectorized(W, X, y, reg):
   # regularization!                                                           #
   #############################################################################
   # Replace "pass" statement with your code
-  pass
+  N = X.shape[0]
+  D = X.shape[1]
+  C = W.shape[1]
+
+  scores = X.mm(W) #N x C
+  scores_minus_max = scores - scores[range(N), scores.argmax(dim=1)].view(-1, 1)
+  scores2_exp = scores_minus_max.exp()
+  softmax = scores2_exp / scores2_exp.sum(dim=1).view(-1, 1)#N x C
+  loss += - softmax[range(N), y].log().sum()
+
+  dW += X.t().mm(softmax)
+  dW -= X.t().mm(torch.ones_like(softmax))
+
+  loss /= N
+  dW /= N
+
+  loss += (reg * W ** 2).sum()
+  dW += 2 * reg * W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
@@ -508,8 +550,8 @@ def softmax_get_search_params():
   - regularization_strengths: regularization strengths candidates
                               e.g. [1e0, 1e1, ...]
   """
-  learning_rates = []
-  regularization_strengths = []
+  learning_rates = [1e-5, 1e-4, 1e-3]
+  regularization_strengths = [0.001, 0.01, 0.05, 0.1]
 
   ###########################################################################
   # TODO: Add your own hyper parameter lists. This should be similar to the #
