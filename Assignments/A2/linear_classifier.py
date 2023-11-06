@@ -524,8 +524,10 @@ def softmax_loss_vectorized(W, X, y, reg):
   softmax = scores2_exp / scores2_exp.sum(dim=1).view(-1, 1)#N x C
   loss += - softmax[range(N), y].log().sum()
 
-  dW += X.t().mm(softmax)
-  dW -= X.t().mm(torch.ones_like(softmax))
+  labels = torch.zeros_like(scores)
+  labels[range(N), y] = 1
+  ds = scores - labels
+  dW += X.t().mm(ds)
 
   loss /= N
   dW /= N
@@ -550,8 +552,8 @@ def softmax_get_search_params():
   - regularization_strengths: regularization strengths candidates
                               e.g. [1e0, 1e1, ...]
   """
-  learning_rates = [1e-5, 1e-4, 1e-3]
-  regularization_strengths = [0.001, 0.01, 0.05, 0.1]
+  learning_rates = [1e-5, 2e-5, 3e-5, 4e-4, 5e-4]
+  regularization_strengths = [1e-3, 2e-3, 3e-3, 4e-3, 5e-3]
 
   ###########################################################################
   # TODO: Add your own hyper parameter lists. This should be similar to the #
